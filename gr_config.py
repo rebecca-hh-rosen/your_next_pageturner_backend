@@ -1,2 +1,0 @@
-api_key: rsZJGpnJBDbg5MsH8EGJQ
-secret: JbU5u8B6v6ZrnLoIOIYFcccekTwYzOkjartrYLNo
