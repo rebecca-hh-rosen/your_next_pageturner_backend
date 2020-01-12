@@ -1,3 +1,3 @@
-# your_next_pageturner_backend
-Backend management for book rec system
+# your_next_page_turner_backend
+
 Database organization, flow and functions for running front end materials.
