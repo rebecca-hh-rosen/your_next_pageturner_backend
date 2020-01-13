@@ -504,10 +504,10 @@ def recommendations(title, df, sim_matrix, filter_args=(None,None), list_length=
     recommended_books = []
     
     # creating a Series for the movie titles so they are associated to an ordered numerical list
-    indices = pd.Series(list(range(len(df))), index=df.index)
+    indices = pd.DataFrame(df.titles, index=df.index)
     
     # getting the index of the book that matches the title
-    idx = indices[title]
+    idx = indices[indices.titles == title].index[0]
 
     # creating a Series with the similarity scores in descending order
     score_series = pd.Series(sim_matrix[idx]).sort_values(ascending = False)
