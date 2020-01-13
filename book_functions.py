@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import re
+# pip install rake-nltk
+from rake_nltk import Rake
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 import string
@@ -252,15 +254,14 @@ def clean_row(row):
     return row['description']
 
 
-def make_keywords(row):
+def make_keywords(description):
     '''Makes keywords of description using "Rake" '''
-    plot = row['description']
     # instantiating Rake, by default is uses english stopwords from NLTK
     # and discard all puntuation characters
     r = Rake()
 
     # extracting the words by passing the text
-    r.extract_keywords_from_text(plot)
+    r.extract_keywords_from_text(description)
 
     # getting the dictionary with key words and their scores
     key_words_dict_scores = r.get_word_degrees()
@@ -269,14 +270,9 @@ def make_keywords(row):
     return list(key_words_dict_scores.keys())
 
 
-def make_BoD(row):
-    ''' Makes a bag of words (Bag_of_Description) containing all the contents of the row as a string'''
-    words = ''
-    colums = row.keys().tolist()
-    for col in colums:
-        words = words + str(row[col]) + ' '
-    return words
-
+def make_bow(au_ge, keywords):
+    '''create a bag of words that combines the clean author/genre and keywords from process_and_almost_bag '''
+    return au_ge.apply(lambda x: x if type(x)!=float else '') + ' ' + keywords.apply(lambda x: x if type(x)!=float else '')
 
 def clean_create_BoD(row):
     '''
@@ -363,6 +359,19 @@ def preprocess(text, stopwords_list):
 
 def item(id, ds):
     return ds.loc[ds['id'] == id]['titles'].tolist()[0].split(' - ')[0]
+
+def clean_bag_save(df_lite, filename):
+    ''' 
+    Cleans, creates bag of words columns (and others) for given dataframe, and saves it to the given file name in 
+    csv and json format
+    '''
+    return
+
+
+
+
+
+
 
 # Just reads the results out of the dictionary.
 def recommend(item_id, num, results, ds):
