@@ -169,7 +169,71 @@ def get_imgs(driver):
                 return img
             except:
                 return np.nan
+
+def get_description(driver):
+    '''
+    Takes in a driver and returns the book description for the page that the driver is currently pointed at. 
+    Returns a NaN for instances where the information is not found
+    '''
+    more = driver.find_elements_by_xpath('//*[@id="description"]/a')
+    try:
+        # handling errors to do with an extended description
+        more[0].click()
+        try:
+            describe = driver.find_element_by_id('description').text[:-7].strip()
+            descrip = ' '.join(describe.split('\n'))
+        except:
+            descrip = np.nan
+
+    except:
+        # if there is no "more" button
+        try:
+            describe = driver.find_element_by_id('description').text[:-7].strip()
+            descrip = ' '.join(describe.split('\n'))
+        except:
+            descrip = np.nan
+    return descrip            
+            
+
+
+def get_genre(driver):
+    genre = np.nan
+    try:
+        genre_blocks = driver.find_elements_by_class_name('actionLinkLite.bookPageGenreLink')
+        genre = []
+        for genre_block in genre_blocks:
+            if genre_block.text[0].isdigit() == False:
+                genre.append(genre_block.text)
+        genre = ', '.join(genre)
+    except:
+        pass
     
+    return genre
+
+    
+def get_form_page_isbn(driver):
+    ''' Returns book format, number of pages and isbn number, in that order. '''
+    form = np.nan
+    page = np.nan
+    isbn = np.nan
+
+    try:
+        details = driver.find_element_by_id('details')
+        span = details.find_elements_by_css_selector('span')
+
+        for word in span:
+            if 'hardcover' in word.text.lower() or 'paperback' in word.text.lower():
+                form = word.text.lower()
+            if 'pages' in word.text.lower():
+                page = int(word.text.split()[0])
+            if 'ISBN' in word.text:
+                isbn = word.text
+                isbn = int(isbn.split()[1][:-1])
+    except:
+        pass
+
+    return form, page, isbn
+
 
 # Cleaning Functions (helpers to more complex rec system)
 
@@ -279,6 +343,41 @@ def simple_rec(genre, length, popularity, df):
     return filter_df(length, popularity, df.loc[poss_books])
     
 
+# Cleaning functions
+
+def lemmatize_stemming(text):
+    '''
+    Return lemmatized text
+    '''
+    word = WordNetLemmatizer().lemmatize(text, pos='v')
+    return stemmer.stem(word)
+
+def preprocess(text, stopwords_list):
+    '''
+    Returns text that is not longer than 3 chars or stop words (as defined by stopwords_list and gensim library) 
+    '''
+    result = []
+    for token in gensim.utils.simple_preprocess(text):
+        if token not in gensim.parsing.preprocessing.STOPWORDS and len(token) > 3 and token not in stopwords_list:
+            result.append(lemmatize_stemming(token))
+    return result
+
+def item(id, ds):
+    return ds.loc[ds['id'] == id]['titles'].tolist()[0].split(' - ')[0]
+
+# Just reads the results out of the dictionary.
+def recommend(item_id, num, results, ds):
+    item_id = ds.iloc[item_id]['id']
+    print("Recommending " + str(num) + " products similar to " + item(item_id, ds) + "...")
+    print("-------")
+    recs = results[item_id][:num]
+    for rec in recs:
+        print (rec[1])
+        print("Recommended: " + item(rec[1], ds) + " (score:" + str(rec[0]) + ")")
+
+    
+    
+    
 
 # Rec system using only description
 
