@@ -3,7 +3,6 @@ import numpy as np
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
-from rake_nltk import Rake
 import string
 from signin_config import *
 
