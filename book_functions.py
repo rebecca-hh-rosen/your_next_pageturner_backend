@@ -1,12 +1,16 @@
 import pandas as pd
 import numpy as np
 import re
-# pip install rake-nltk
+
+# pip install rake-nltk  # run code if working in a new environment and getting errors on Rake()
 from rake_nltk import Rake
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 import string
 from signin_config import *
+
+# File is organized chronologically : scraping, processing, filtering, recommending
+
 
 
 # Scraping functions
@@ -236,7 +240,7 @@ def get_form_page_isbn(driver):
     return form, page, isbn
 
 
-# Cleaning Functions (helpers to more complex rec system)
+# Processing functions (helpers to more complex rec system)
 
 def clean_row(row):
     '''cleans the description of punctuation and digits '''
@@ -270,6 +274,39 @@ def make_keywords(description):
     return list(key_words_dict_scores.keys())
 
 
+def process_and_almost_bag(authors, genre, desc_clean):
+    ''' 
+    Takes in author, genre and cleaned description (as a series or dictionary) and returns a cleaned column of author and genre combined, 
+    as well as the keywords in description. To be used in conjuction with make_bow() for full use.
+    '''
+    # create author and genre column clean
+    au_ge = authors.apply(lambda x: x.lower().replace(' ','').replace('.','')) + ' ' + genre.apply(lambda x: x.replace(' ','').replace(',',' ') if x!='set()' and type(x)!=float else ' ')
+    au_ge = au_ge.apply(lambda x: x.lower() if type(x) != float else x) 
+
+    
+    # clean description for keyword search
+    for c in string.punctuation + '”' + '“':
+        if c == '`' or c == "'":
+            desc_clean = desc_clean.apply(lambda x: x.replace(c,"") if type(x)!=float else x)
+        else:
+            desc_clean = desc_clean.apply(lambda x: x.replace(c," ") if type(x)!=float else x)
+            
+    for s in string.digits:
+        desc_clean = desc_clean.apply(lambda x: x.replace(s,"") if type(x)!=float else x)
+
+    # get keywords using Rake
+    keywords = []
+    for plot in desc_clean:
+        if type(plot) == float:
+            keywords.append(np.nan)
+            continue
+        keys = ' '.join(make_keywords(plot))
+        keywords.append(keys)
+        
+    return au_ge, pd.Series(keywords)
+
+
+
 def make_bow(au_ge, keywords):
     '''create a bag of words that combines the clean author/genre and keywords from process_and_almost_bag '''
     return au_ge.apply(lambda x: x if type(x)!=float else '') + ' ' + keywords.apply(lambda x: x if type(x)!=float else '')
@@ -295,14 +332,41 @@ def clean_create_BoD(row):
     
 
 
+def lemmatize_stemming(text):
+    '''
+    Return lemmatized text
+    '''
+    word = WordNetLemmatizer().lemmatize(text, pos='v')
+    return stemmer.stem(word)
+
+def preprocess(text, stopwords_list):
+    '''
+    Returns text that is not longer than 3 chars or stop words (as defined by stopwords_list and gensim library) 
+    '''
+    result = []
+    for token in gensim.utils.simple_preprocess(text):
+        if token not in gensim.parsing.preprocessing.STOPWORDS and len(token) > 3 and token not in stopwords_list:
+            result.append(lemmatize_stemming(token))
+    return result
+
+def item(id, ds):
+    return ds.loc[ds['id'] == id]['titles'].tolist()[0].split(' - ')[0]
+
+def clean_bag_save(df_lite, filename):
+    ''' 
+    Cleans, creates bag of words columns (and others) for given dataframe, and saves it to the given file name in 
+    csv and json format
+    '''
+    return
 
 
 
+# Filter functions
 # Most simple rec system
 
 def simple_rec(genre, length, popularity, df):
     ''' 
-    use a  genre_id_dict and df_simple
+    Most simple recommendation system: uses a dictionary and dataframe to filter based on user's length, genre and popularity preferences 
     '''
     #make genres into dictionary with titles as index
     genre_dict = dict(df.genre)
@@ -338,43 +402,8 @@ def simple_rec(genre, length, popularity, df):
     return filter_df(length, popularity, df.loc[poss_books])
     
 
-# Cleaning functions
-
-def lemmatize_stemming(text):
-    '''
-    Return lemmatized text
-    '''
-    word = WordNetLemmatizer().lemmatize(text, pos='v')
-    return stemmer.stem(word)
-
-def preprocess(text, stopwords_list):
-    '''
-    Returns text that is not longer than 3 chars or stop words (as defined by stopwords_list and gensim library) 
-    '''
-    result = []
-    for token in gensim.utils.simple_preprocess(text):
-        if token not in gensim.parsing.preprocessing.STOPWORDS and len(token) > 3 and token not in stopwords_list:
-            result.append(lemmatize_stemming(token))
-    return result
-
-def item(id, ds):
-    return ds.loc[ds['id'] == id]['titles'].tolist()[0].split(' - ')[0]
-
-def clean_bag_save(df_lite, filename):
-    ''' 
-    Cleans, creates bag of words columns (and others) for given dataframe, and saves it to the given file name in 
-    csv and json format
-    '''
-    return
-
-
-
-
-
-
-
-# Just reads the results out of the dictionary.
-def recommend(item_id, num, results, ds):
+def simple_rec_read(item_id, num, results, ds):
+    ''' Helper function for simple_rec in notebook environments: simply reads the results out of the dictionary. '''
     item_id = ds.iloc[item_id]['id']
     print("Recommending " + str(num) + " products similar to " + item(item_id, ds) + "...")
     print("-------")
@@ -385,13 +414,11 @@ def recommend(item_id, num, results, ds):
 
     
     
-    
 
-# Rec system using only description
 
 def get_recommendations(title, dff, sim_matrix, testing=False):
     '''
-    Takes in a title and dataframe (use dff), then makes an abbreviated df containing only the titles and index number. 
+    Rec system using only description: Takes in a title and dataframe (use dff), then makes an abbreviated df containing only the titles and index number. 
     Returns top 10 similar books based on cosine similarity of vectorized description ALONE.
     '''
     if testing == True:
@@ -411,9 +438,11 @@ def get_recommendations(title, dff, sim_matrix, testing=False):
 
 
 
-# helper functions for interfacing with the final recommendation system
-
 def fail_to_find(df):
+    '''  
+    helper function for interfacing with the final recommendation system in notebook environments : allows for infinite user input on title, ends interface if
+    user submits 'quit!' and returns find_title if title is found
+    '''
     final = input("That title did not match any of our books! Please try again, or enter 'quit!' to stop playing.")
     if final == 'quit!':
         return 0
@@ -421,6 +450,10 @@ def fail_to_find(df):
         return find_title(final, df)
         
 def find_title(guess, df):
+    ''' 
+    helper function for interfacing with the final recommendation system in notebook environments : searches for book title within given dataframe and calls 
+    fail_to_find for greater user input if title not initially found.
+     '''
     guess = guess.lower()
     final = []
     titles_list = {x.lower(): x for x in df.index}
@@ -445,13 +478,11 @@ def find_title(guess, df):
         return fail_to_find(df)
                      
                       
-                      
-                      
-# Filter helper functions
+                                          
                       
 def return_pop_df(popularity, df):
     '''
-    returns population filtered dataframe - options are:
+    Filter helper function : returns population filtered dataframe - options are:
         deep cut: < 27,000
         well known: between 80,000 and 27,000
         super popular: > 80,000
@@ -465,7 +496,7 @@ def return_pop_df(popularity, df):
     
 def filter_df(length, popularity, df):
     '''
-    returns length and popularity filtered dataframe - 
+    Filter helper function : returns length and popularity filtered dataframe - 
     
     length options are:
         long: >= 350
