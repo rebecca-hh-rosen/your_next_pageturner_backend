@@ -86,73 +86,6 @@ def goodreads_list_scrape(driver):
     return list_of_book_dicts
 
 
-
-def secondary_scrape(gr_id, driver):
-    '''
-    Scrapes the goodreads website with given dic.id to get img, description, format, pages and genre. 
-    Funciton returns the variables in that order
-    ! not yet tested as a function !
-    '''
-    img, descrip, form, page, gen = '','','','',''
-    
-    site = f"https://www.goodreads.com/book/show/{gr_id}"
-    driver.get(site)
-    
-    try:
-        img = driver.find_element_by_id('coverImage').get_attribute('src')
-        
-    except:
-        img = ''
-
-    
-    # full description - cleaned from newline breaks
-    more = driver.find_elements_by_xpath('//*[@id="description"]/a')
-    try:
-        # handling errors to do with an extended description
-        more[0].click()
-        try:
-            describe = driver.find_element_by_id('description').text[:-7].strip()
-            descrip = ' '.join(describe.split('\n'))
-        except:
-            descrip = ''
-
-    except:
-        try:
-            describe = driver.find_element_by_id('description').text[:-7].strip()
-            descrip = ' '.join(describe.split('\n'))
-        except:
-            descrip = ''
-
-    
-    # format and number of pages
-    try:
-        details = driver.find_element_by_id('details')
-        span = details.find_elements_by_css_selector('span')
-
-        for word in span:
-            if len(word.text) >0:
-                if 'cover'in word.text:
-                    form = word.text
-                if 'pages'in word.text:
-                    page = word.text
-    except:
-        form = ''
-        page = ''
-
-    # get a list of genres
-    try:
-        genre_blocks = driver.find_elements_by_class_name('actionLinkLite.bookPageGenreLink')
-        genre = []
-        for genre_block in genre_blocks:
-            if genre_block.text[0].isdigit() == False:
-                genre.append(genre_block.text)
-        genre = set(genre)
-    except:
-        genre = ''
-        
-    return img, descrip, form, page, genre
-
-
 def get_imgs(driver):
     '''
     Takes in a driver and returns the source image (coverImage) for the page that the driver is currently pointed at. 
@@ -202,6 +135,7 @@ def get_description(driver):
 
 
 def get_genre(driver):
+    ''' returns a string of genre titles associated with a book '''
     genre = np.nan
     try:
         genre_blocks = driver.find_elements_by_class_name('actionLinkLite.bookPageGenreLink')
@@ -238,6 +172,76 @@ def get_form_page_isbn(driver):
         pass
 
     return form, page, isbn
+
+
+
+def secondary_scrape(gr_id, driver):
+    '''
+    Scrapes the goodreads website with given dic.id to get img, description, format, pages and genre. 
+    Funciton returns the variables together as a dictionary
+    '''
+
+    site = f"https://www.goodreads.com/book/show/{gr_id}"
+    driver.get(site)
+    
+    img = get_imgs(driver)
+    description = get_description(driver)
+    genre = get_genre(driver)
+    form, page, isbn = get_form_page_isbn(driver)
+        
+    return {'img':img, 'descrip':descrip,'genre':genre,'form':form, 'page':page, 'isbn':isbn}
+
+
+
+def save_those_50(latest, last_50): 
+    '''saves 'latest' as “last_50”: will overwrite the existing "last_50" json and csv files with the current 50 (as latest)'''
+    latest.to_csv(f'{last_50}.csv',index=False)
+    latest.to_json(f'{last_50}.json',orient='records')
+    return 
+    
+    
+def add_to_saved_df(latest, saved_filename): 
+    ''' returns a concatenated dataframe with the last 50 appended onto it, to be used before saving'''
+    old = pd.read_csv(saved_filename, index=False)
+    return old.append(latest, ignore_index=True)
+
+    
+update_saved(updated_df, saved_filename): saves updated_df as the current saved_df
+- reads in and cleans current csv (remember to add index=False in read_csv)
+- will overwrite the existing saved_df with current dataframe given
+- saves files in json and csv formats
+
+
+def update_saved(updated_df, saved_filename): 
+    '''saves updated_df as the current saved_filename: will overwrite the existing json and csv files with the given df'''
+    updated_df.to_csv(f'{saved_filename}.csv',index=False)
+    updated_df.to_json(f'{saved_filename}.json',orient='records')
+    return
+
+
+def push_to_git(last_50, saved_filename, message): 
+    '''
+    pushes given files to github:
+    - in future, would take in a list of filenames to add to commit and make a bash file to auto commit
+    - presently, has preexisting bash file name , commit message and runs an auto-commit function by calling the 
+    bash file in the terminal
+    '''
+    return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Processing functions (helpers to more complex rec system)
