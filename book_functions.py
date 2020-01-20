@@ -18,7 +18,7 @@ from signin_config import *
 def get_urls():
     '''gets all the urls from GoodReads top ~200 books from years 1909 to 2019'''
     url = []
-    for i in range(1951,2019):
+    for i in range(1909,2020):
         url.append(f'https://www.goodreads.com/book/popular_by_date/{i}/')
     return url
 
@@ -47,8 +47,6 @@ def goodreads_list_scrape(driver):
     '''
     list_of_book_dicts = []
     
-    counter = 0
-    
     titles_blocks = driver.find_elements_by_class_name('bookTitle')
     
     authors_blocks = driver.find_elements_by_class_name('authorName')
@@ -68,21 +66,23 @@ def goodreads_list_scrape(driver):
             gs_dict['ratings'] = ratings_blocks[i].text[16:21]
         else:
             gs_dict['ratings'] = ratings_blocks[i].text[0:4]
-            
+        
+        if type(gs_dict['ratings']) == str:
+            gs_dict['ratings'] = int(gs_dict['ratings'])
     
         if 'really liked it' in num_blocks[i].text:
             gs_dict['num_ratings'] = num_blocks[i].text[34:]
         else:
             gs_dict['num_ratings'] = num_blocks[i].text[18:]
+            
+        if type(gs_dict['num_ratings']) == str:
+            gs_dict['num_ratings'] = int(gs_dict['num_ratings'].split()[0].replace(',', ''))
         
         gs_dict['id'] = re.search(r'\d+',titles_blocks[i].get_attribute('href')).group()
-        
-        counter += 1
-        if counter%50 == 0:
-            print(counter)
-            
+
         list_of_book_dicts.append(gs_dict)
         
+    print ('scraping done')
     return list_of_book_dicts
 
 
@@ -177,8 +177,8 @@ def get_form_page_isbn(driver):
 
 def secondary_scrape(gr_id, driver):
     '''
-    Scrapes the goodreads website with given dic.id to get img, description, format, pages and genre. 
-    Funciton returns the variables together as a dictionary
+    Scrapes the goodreads website with given dic.id to get img (img src link), description, genre, format, pages and isbn. 
+    Funciton returns the variables together as a dictionary in above order.
     '''
 
     site = f"https://www.goodreads.com/book/show/{gr_id}"
@@ -189,7 +189,7 @@ def secondary_scrape(gr_id, driver):
     genre = get_genre(driver)
     form, page, isbn = get_form_page_isbn(driver)
         
-    return {'img':img, 'descrip':descrip,'genre':genre,'form':form, 'page':page, 'isbn':isbn}
+    return {'img':img, 'description':description, 'genre':genre,'format':form, 'page':page, 'isbn':isbn}
 
 
 
@@ -197,26 +197,20 @@ def save_those_50(latest, last_50):
     '''saves 'latest' as “last_50”: will overwrite the existing "last_50" json and csv files with the current 50 (as latest)'''
     latest.to_csv(f'{last_50}.csv',index=False)
     latest.to_json(f'{last_50}.json',orient='records')
-    return 
+    return 1
     
     
 def add_to_saved_df(latest, saved_filename): 
     ''' returns a concatenated dataframe with the last 50 appended onto it, to be used before saving'''
-    old = pd.read_csv(saved_filename, index=False)
-    return old.append(latest, ignore_index=True)
-
-    
-update_saved(updated_df, saved_filename): saves updated_df as the current saved_df
-- reads in and cleans current csv (remember to add index=False in read_csv)
-- will overwrite the existing saved_df with current dataframe given
-- saves files in json and csv formats
+    old = pd.read_csv(saved_filename, index_col=[0])
+    return old.append(latest, sort=True)
 
 
 def update_saved(updated_df, saved_filename): 
     '''saves updated_df as the current saved_filename: will overwrite the existing json and csv files with the given df'''
     updated_df.to_csv(f'{saved_filename}.csv',index=False)
     updated_df.to_json(f'{saved_filename}.json',orient='records')
-    return
+    return 1
 
 
 def push_to_git(last_50, saved_filename, message): 
@@ -226,18 +220,7 @@ def push_to_git(last_50, saved_filename, message):
     - presently, has preexisting bash file name , commit message and runs an auto-commit function by calling the 
     bash file in the terminal
     '''
-    return
-
-
-
-
-
-
-
-
-
-
-
+    return 0
 
 
 
@@ -245,21 +228,6 @@ def push_to_git(last_50, saved_filename, message):
 
 
 # Processing functions (helpers to more complex rec system)
-
-def clean_row(row):
-    '''cleans the description of punctuation and digits '''
-    
-    # Cleaning: get rid of punctuations in descriptions
-    row.description = row.description.replace('”','')
-    row.description = row.description.replace('“','')
-    for c in string.punctuation:
-        row.description = row.description.replace(c,"")
-
-    # Cleaning: get rid of digits in descriptions
-    for s in string.digits:
-        row.description = row.description.replace(s,"")
-
-    return row['description']
 
 
 def make_keywords(description):
@@ -278,133 +246,66 @@ def make_keywords(description):
     return list(key_words_dict_scores.keys())
 
 
-def process_and_almost_bag(authors, genre, desc_clean):
+def process_and_almost_bag(row_dict):
     ''' 
-    Takes in author, genre and cleaned description (as a series or dictionary) and returns a cleaned column of author and genre combined, 
-    as well as the keywords in description. To be used in conjuction with make_bow() for full use.
+    Takes in author, genre and cleaned description (as a series or dictionary) and returns a cleaned column of 
+    author and genre combined, as well as the keywords in description. To be used in conjuction with make_bow() for full use.
     '''
-    # create author and genre column clean
-    au_ge = authors.apply(lambda x: x.lower().replace(' ','').replace('.','')) + ' ' + genre.apply(lambda x: x.replace(' ','').replace(',',' ') if x!='set()' and type(x)!=float else ' ')
-    au_ge = au_ge.apply(lambda x: x.lower() if type(x) != float else x) 
+    authors, genre, desc_clean = row_dict['authors'], row_dict['genre'], row_dict['description']
 
+    # get rid of nan errors by setting nan values to empty strings
+    if genre == 'set()' or type(genre) == float:
+        genre = ''
+    if type(authors) == float:
+        authors = ''
+    if type(desc_clean) == float:
+        desc_clean = ''
+        
+    
+    # create a clean, author + genre column
+    au_ge = authors.lower().replace(' ','').replace('.','') + ' ' + genre.lower().replace(' ','').replace(',',' ')
     
     # clean description for keyword search
     for c in string.punctuation + '”' + '“':
-        if c == '`' or c == "'":
-            desc_clean = desc_clean.apply(lambda x: x.replace(c,"") if type(x)!=float else x)
+        if c == '`' or c == "'": 
+            desc_clean = desc_clean.replace(c,"")
         else:
-            desc_clean = desc_clean.apply(lambda x: x.replace(c," ") if type(x)!=float else x)
+            desc_clean = desc_clean.replace(c," ")
             
     for s in string.digits:
-        desc_clean = desc_clean.apply(lambda x: x.replace(s,"") if type(x)!=float else x)
+        desc_clean = desc_clean.replace(s,"")
 
-    # get keywords using Rake
-    keywords = []
-    for plot in desc_clean:
-        if type(plot) == float:
-            keywords.append(np.nan)
-            continue
-        keys = ' '.join(make_keywords(plot))
-        keywords.append(keys)
+    # get keywords using clean description in make_keywords() function
+    key_words = ' '.join(make_keywords(desc_clean))
         
-    return au_ge, pd.Series(keywords)
+
+    return au_ge, key_words
 
 
 
-def make_bow(au_ge, keywords):
+def make_bow(au_ge, key_words):
     '''create a bag of words that combines the clean author/genre and keywords from process_and_almost_bag '''
-    return au_ge.apply(lambda x: x if type(x)!=float else '') + ' ' + keywords.apply(lambda x: x if type(x)!=float else '')
+    if type(au_ge)==float:
+        au_ge = ''
+    if type(key_words)==float:
+        key_words = ''
+        
+    return au_ge + ' ' + key_words
 
-def clean_create_BoD(row):
+
+def clean_and_bag_words(row_dict):
     '''
-    Combines helper functions to clean description, make keywords and make a final 
-    bag of words (Bag_of_Description) for the row.
+    Takes in a 'row' (a dictionary of book information) and combines helper functions to clean description, 
+    make keywords and a final bag of words (Bag_of_Description) for the 'row'.
     '''
-    # make a deep copy so we can manipulate and not recieve warning
-    our_row = row.copy(deep=True)
+    au_ge, key_words = process_and_almost_bag(row_dict)
+    bow = make_bow(au_ge, key_words)
     
-    # clean description
-    our_row['description'] = clean_row(row)
-
-    # assigning the key words to the new column
-    our_row['Key_words'] = make_keywords(our_row)
-    
-    # make bag of description
-    our_row['bag_of_description'] = make_BoD(our_row) 
-    
-    return our_row
-    
-
-
-def lemmatize_stemming(text):
-    '''
-    Return lemmatized text
-    '''
-    word = WordNetLemmatizer().lemmatize(text, pos='v')
-    return stemmer.stem(word)
-
-def preprocess(text, stopwords_list):
-    '''
-    Returns text that is not longer than 3 chars or stop words (as defined by stopwords_list and gensim library) 
-    '''
-    result = []
-    for token in gensim.utils.simple_preprocess(text):
-        if token not in gensim.parsing.preprocessing.STOPWORDS and len(token) > 3 and token not in stopwords_list:
-            result.append(lemmatize_stemming(token))
-    return result
-
-def item(id, ds):
-    return ds.loc[ds['id'] == id]['titles'].tolist()[0].split(' - ')[0]
-
-def clean_bag_save(df_lite, filename):
-    ''' 
-    Cleans, creates bag of words columns (and others) for given dataframe, and saves it to the given file name in 
-    csv and json format
-    '''
-    return
+    return {'au_ge':au_ge, 'key_words':key_words, 'bow':bow }
 
 
 
-# Filter functions
-# Most simple rec system
-
-def simple_rec(genre, length, popularity, df):
-    ''' 
-    Most simple recommendation system: uses a dictionary and dataframe to filter based on user's length, genre and popularity preferences 
-    '''
-    #make genres into dictionary with titles as index
-    genre_dict = dict(df.genre)
-    
-    # put sub-genres into a main genres dictionary
-    genre_id_dict = {'Scifi': [], 'Romance':[], 'Thriller':[], 'Comics':[], 'Biography':[], 'Nonfiction':[], 'Self_help':[], 'Young_Adult':[], 'Family':[], 'Fiction':[]}
-
-    for k,v in genre_dict.items():  # where k=book_name and v=genre_category
-        if ('Fantasy' in v) or ('Science' in v):
-            genre_id_dict['Scifi'].append(k)
-        if ('Romance' in v) or ('Chick Lit' in v) or ('Erotic' in v) or ('Contemporary' in v) or ('Drama' in v):
-            genre_id_dict['Romance'].append(k)
-        if ('Thriller' in v) or ('Mystery' in v) or ('Crime' in v) or ('Horror' in v):
-            genre_id_dict['Thriller'].append(k)
-        if ('Comic' in v) or ('Graphic' in v) or ('Manga' in v):
-            genre_id_dict['Comics'].append(k)
-        if ('Biography' in v) or ('Autobiography' in v) or ('Memoir' in v) or ('Sport' in v):
-            genre_id_dict['Biography'].append(k)
-        if ('Nonfiction' in v) or ('History' in v) or ('Politics' in v) or ('Cooking' in v) or ('Art' in v):
-            genre_id_dict['Nonfiction'].append(k)
-        if ('Self Help' in v) or ('Religion' in v):
-            genre_id_dict['Self_help'].append(k)
-        if ('Young Adult' in v):
-            genre_id_dict['Young_Adult'].append(k)
-        if ('Childrens' in v) or ('Family' in v):
-            genre_id_dict['Family'].append(k)
-        if ('Fiction' in v):
-            genre_id_dict['Fiction'].append(k)        
-    
-
-    poss_books = genre_id_dict[genre]
-    
-    return filter_df(length, popularity, df.loc[poss_books])
-    
+# Rec system helper functions
 
 def simple_rec_read(item_id, num, results, ds):
     ''' Helper function for simple_rec in notebook environments: simply reads the results out of the dictionary. '''
@@ -415,32 +316,6 @@ def simple_rec_read(item_id, num, results, ds):
     for rec in recs:
         print (rec[1])
         print("Recommended: " + item(rec[1], ds) + " (score:" + str(rec[0]) + ")")
-
-    
-    
-
-
-def get_recommendations(title, dff, sim_matrix, testing=False):
-    '''
-    Rec system using only description: Takes in a title and dataframe (use dff), then makes an abbreviated df containing only the titles and index number. 
-    Returns top 10 similar books based on cosine similarity of vectorized description ALONE.
-    '''
-    if testing == True:
-        title = find_title(title, dff)
-
-    # create a new dataframe with titles as index, and index as a feature
-    indices = pd.Series(list(range(len(dff))), index=dff.index)
-    idx = indices[title]
-
-    sim_scores = list(enumerate(sim_matrix[idx]))
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    sim_scores = sim_scores[1:31]
-    movie_indices = [i[0] for i in sim_scores]
-
-    return dff.loc[indices[movie_indices].index][:11]
-
-
-
 
 def fail_to_find(df):
     '''  
@@ -455,8 +330,9 @@ def fail_to_find(df):
         
 def find_title(guess, df):
     ''' 
-    helper function for interfacing with the final recommendation system in notebook environments : searches for book title within given dataframe and calls 
-    fail_to_find for greater user input if title not initially found.
+    helper function for interfacing with the final recommendation system in notebook environments : 
+    searches for book title within given dataframe and calls.
+    Calls fail_to_find for greater user input if title not initially found.
      '''
     guess = guess.lower()
     final = []
@@ -480,9 +356,7 @@ def find_title(guess, df):
                 print (f"\n Great! Looking for recomendations for the book: {titles_list[poss]}")
                 return titles_list[poss]
         return fail_to_find(df)
-                     
-                      
-                                          
+                                                                                    
                       
 def return_pop_df(popularity, df):
     '''
@@ -521,6 +395,73 @@ def filter_df(length, popularity, df):
         df = return_pop_df(popularity, df)
 
     return df
+
+
+
+## Recommendation Functions
+
+
+# Most simple reco - filter only
+
+def filter_books_rec(genre, length, popularity, df):
+    ''' 
+    Most simple recommendation system: uses a dictionary and dataframe to filter based on user's length, genre and popularity preferences 
+    '''
+    #make genres into dictionary with titles as index
+    genre_dict = dict(df.genre)
+    
+    # put sub-genres into a main genres dictionary
+    genre_id_dict = {'Scifi': [], 'Romance':[], 'Thriller':[], 'Comics':[], 'Biography':[], 'Nonfiction':[], 'Self_help':[], 'Young_Adult':[], 'Family':[], 'Fiction':[]}
+
+    for k,v in genre_dict.items():  # where k=book_name and v=genre_category
+        if ('Fantasy' in v) or ('Science' in v):
+            genre_id_dict['Scifi'].append(k)
+        if ('Romance' in v) or ('Chick Lit' in v) or ('Erotic' in v) or ('Contemporary' in v) or ('Drama' in v):
+            genre_id_dict['Romance'].append(k)
+        if ('Thriller' in v) or ('Mystery' in v) or ('Crime' in v) or ('Horror' in v):
+            genre_id_dict['Thriller'].append(k)
+        if ('Comic' in v) or ('Graphic' in v) or ('Manga' in v):
+            genre_id_dict['Comics'].append(k)
+        if ('Biography' in v) or ('Autobiography' in v) or ('Memoir' in v) or ('Sport' in v):
+            genre_id_dict['Biography'].append(k)
+        if ('Nonfiction' in v) or ('History' in v) or ('Politics' in v) or ('Cooking' in v) or ('Art' in v):
+            genre_id_dict['Nonfiction'].append(k)
+        if ('Self Help' in v) or ('Religion' in v):
+            genre_id_dict['Self_help'].append(k)
+        if ('Young Adult' in v):
+            genre_id_dict['Young_Adult'].append(k)
+        if ('Childrens' in v) or ('Family' in v):
+            genre_id_dict['Family'].append(k)
+        if ('Fiction' in v):
+            genre_id_dict['Fiction'].append(k)        
+    
+
+    poss_books = genre_id_dict[genre]
+    
+    return filter_df(length, popularity, df.loc[poss_books])
+
+
+# second tier rec system - only cosine similarity, doesn't include filtration option
+
+def get_recs_simple(title, dff, sim_matrix, testing=False):
+    '''
+    Rec system using only description: 
+    Takes in a title and dataframe (use dff), then makes an abbreviated df containing only the titles and index number. 
+    Returns top 10 similar books based on cosine similarity of vectorized description.
+    '''
+    if testing == True:
+        title = find_title(title, dff)
+
+    # create a new dataframe with titles as index, and index as a feature
+    indices = pd.Series(list(range(len(dff))), index=dff.index)
+    idx = indices[title]
+
+    sim_scores = list(enumerate(sim_matrix[idx]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    sim_scores = sim_scores[1:31]
+    movie_indices = [i[0] for i in sim_scores]
+
+    return dff.loc[indices[movie_indices].index][:11]
 
 
 
