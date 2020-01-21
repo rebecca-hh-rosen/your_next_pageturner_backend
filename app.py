@@ -1,6 +1,5 @@
 # imports 
-import json
-import codecs
+import json, codecs
 import pandas as pd
 from flask import request, url_for
 from flask_api import FlaskAPI, status, exceptions
@@ -32,7 +31,7 @@ cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
 
 @app.route("/books", methods=['GET'])
 def notes_list():
-    return data.sample(50).to_json(orient='records')
+    return james_data.sample(50).to_json(orient='records')
 
 
 @app.route('/books', methods=['POST'])
