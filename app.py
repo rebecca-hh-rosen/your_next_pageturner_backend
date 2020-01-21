@@ -16,10 +16,11 @@ CORS(app)
 # load in data and transform as needed
 
 # data = pd.read_json('updating_df.json',orient='records') # later
-data = pd.read_json('goodreads_updated.json',orient='records')
+data = pd.read_json('goodreads_updated.json',orient='index')
 
-james_data = data[['id','authors', 'titles', 'description', 'img', 'genre']]
-james_data.genre = james_data.genre.apply(lambda x: x.split(', '))
+data = pd.read_json('goodreads_updated.json',orient='index')
+james_data = data[['id', 'authors', 'titles','description', 'img','genre']]
+james_data['genre'] = james_data['genre'].map(lambda x: x.split() if type(x) == str else [])
 
 
 tf = TfidfVectorizer(analyzer='word', ngram_range=(1, 2),min_df=0, stop_words='english')
