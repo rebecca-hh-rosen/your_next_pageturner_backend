@@ -1,3 +1,4 @@
+# imports 
 import json
 import codecs
 import pandas as pd
@@ -9,24 +10,25 @@ from sklearn.metrics.pairwise import linear_kernel, cosine_similarity
 
 from book_functions import *
 
+
 app = FlaskAPI(__name__)
 CORS(app)
 
-# loading in necessary variables
-# with open('goodreads_updated.json') as json_file:  # is this still needed?
-data = pd.read_json('goodreads_updated.json',
-                    orient='index').reset_index(drop=True)
+# load in data and transform as needed
+
+# data = pd.read_json('updating_df.json',orient='records') # later
+data = pd.read_json('goodreads_updated.json',orient='records')
+
 james_data = data[['id','authors', 'titles', 'description', 'img', 'genre']]
 james_data.genre = james_data.genre.apply(lambda x: x.split(', '))
 
-df = pd.read_csv('goodreads_updated.csv')
 
-
-tf = TfidfVectorizer(analyzer='word', ngram_range=(1, 2),
-                     min_df=0, stop_words='english')
+tf = TfidfVectorizer(analyzer='word', ngram_range=(1, 2),min_df=0, stop_words='english')
 tfidf_matrix = tf.fit_transform(data['bag_of_words'])
 cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
 
+
+# routing information
 
 @app.route("/books", methods=['GET'])
 def notes_list():
