@@ -1,6 +1,5 @@
-# imports
-import json
-import codecs
+# imports 
+import json, codecs
 import pandas as pd
 from flask import request, url_for
 from flask_api import FlaskAPI, status, exceptions
@@ -8,23 +7,23 @@ from flask_cors import CORS
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import linear_kernel, cosine_similarity
 
+from book_functions import *
+
+
 app = FlaskAPI(__name__)
 CORS(app)
 
 # load in data and transform as needed
 
 # data = pd.read_json('updating_df.json',orient='records') # later
-data = pd.read_json('goodreads_updated.json', orient='index').reset_index(drop=True)
+data = pd.read_json('goodreads_updated.json',orient='records').reset_index(drop=True).drop_duplicates()
 
-# data = pd.read_json('goodreads_updated.json', orient='index')
-# james_data = data[['id', 'authors', 'titles', 'description', 'img', 'genre']]
-# james_data['genre'] = james_data['genre'].map(
-#     lambda x: x.split() if type(x) == str else [])
+james_data = data[['id','authors', 'titles', 'description', 'img', 'genre']]
+james_data.genre = james_data.genre.apply(lambda x: x.split(', '))
 
-# tf = TfidfVectorizer(analyzer='word', ngram_range=(1, 2),
-#                      min_df=0, stop_words='english')
-# tfidf_matrix = tf.fit_transform(data['bag_of_words'])
-# cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
+tf = TfidfVectorizer(analyzer='word', ngram_range=(1, 2),min_df=0, stop_words='english')
+tfidf_matrix = tf.fit_transform(data['bag_of_words'])
+cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
 
 # routing information
 
