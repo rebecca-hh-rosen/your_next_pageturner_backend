@@ -7,6 +7,7 @@ from rake_nltk import Rake
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 import string
+from fuzzywuzzy import fuzz
 from signin_config import *
 
 # File is organized chronologically : scraping, processing, filtering, recommending
@@ -478,6 +479,8 @@ def get_recs_simple(title, dff, sim_matrix, testing=False):
 
 
 
+# Server functions
+
 # Final recommendation system - includes option of filter arguments
                       
 def recommendations(title, df, sim_matrix, filter_args=(None,None), list_length=11, suppress=True):
@@ -526,3 +529,14 @@ def recommendations(title, df, sim_matrix, filter_args=(None,None), list_length=
 
     return df.loc[recommended_books]
                       
+
+def return_query(query,df):
+    ''' Takes in a string and returns a df with 50 most similar titles '''
+    matching_books = []
+    for k, v in df.iterrows():
+        title = v.titles
+        ratio_set = fuzz.token_set_ratio(title.lower(), query.lower())
+        if ratio_set > 70:
+            matching_books.append(k)
+
+    return df.iloc[matching_books]
