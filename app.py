@@ -5,6 +5,9 @@ import pandas as pd
 from flask import request, url_for
 from flask_api import FlaskAPI, status, exceptions
 from flask_cors import CORS
+
+from fuzzywuzzy import fuzz
+
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import linear_kernel, cosine_similarity
 

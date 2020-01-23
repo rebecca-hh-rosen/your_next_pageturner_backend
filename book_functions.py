@@ -7,7 +7,6 @@ from rake_nltk import Rake
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 import string
-from fuzzywuzzy import fuzz
 from signin_config import *
 
 # File is organized chronologically : scraping, processing, filtering, recommending
