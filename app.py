@@ -64,6 +64,18 @@ def returnTitle():
     return list_of_recs.to_json(orient='records')
 
 
+def return_query_pull(query,df):
+    ''' Takes in a string and returns a df with 50 most similar titles '''
+    matching_books = []
+    for k, v in df.iterrows():
+        title = v.titles
+        ratio_set = fuzz.token_set_ratio(title.lower(), query.lower())
+        if ratio_set > 70:
+            matching_books.append(k)
+
+    return df.iloc[matching_books]
+
+
 def recommendations(title, df, sim_matrix, filter_args=(None, None), list_length=11, suppress=True):
     '''
     Return recommendations based on a "bag of words" comprised of book author, genres and description.
