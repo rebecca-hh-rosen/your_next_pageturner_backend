@@ -39,8 +39,31 @@ def initial_gr_signin(driver):
     signin.click()
     
 
+def clean_ratings(split_block_text):
+    ratin = False
+    avg_rating = np.nan
+    tot_rating = np.nan
+    for i in split_block_text:
+        if ratin == False:
+            try:
+                #trying to convert i to float
+                avg_rating = float(i)
+                ratin = True
+                #break the loop if i is the first string that's successfully converted
+            except:
+                continue
+        else:
+            try:
+                #trying to convert i to float
+                tot_rating = int(i.replace(',',''))
+                #break the loop if i is the first string that's successfully converted
+                break
+            except:
+                continue
+    return {'avg_rating':avg_rating, 'tot_rating': tot_rating}
 
-def goodreads_list_scrape(driver):
+
+def goodreads_list_scrape(driver, site):
     ''' 
     Takes in a driver pointed to a top ~200 page, and returns initial info (title, authors, num_ratings and id) on 
     all books on the page in the form of a list of dictionaries. Prints progress updates every 50 books.
@@ -61,24 +84,14 @@ def goodreads_list_scrape(driver):
         gs_dict['titles'] = titles_blocks[i].text
         
         gs_dict['authors'] = authors_blocks[i].text
-            
-        if 'really liked it' in ratings_blocks[i].text:
-            gs_dict['ratings'] = ratings_blocks[i].text[16:21]
-        else:
-            gs_dict['ratings'] = ratings_blocks[i].text[0:4]
+
+        idx = re.search(r'\d+',titles_blocks[i].get_attribute('href')).group()
         
-        if type(gs_dict['ratings']) == str:
-            gs_dict['ratings'] = int(gs_dict['ratings'])
-    
-        if 'really liked it' in num_blocks[i].text:
-            gs_dict['num_ratings'] = num_blocks[i].text[34:]
-        else:
-            gs_dict['num_ratings'] = num_blocks[i].text[18:]
-            
-        if type(gs_dict['num_ratings']) == str:
-            gs_dict['num_ratings'] = int(gs_dict['num_ratings'].split()[0].replace(',', ''))
-        
-        gs_dict['id'] = re.search(r'\d+',titles_blocks[i].get_attribute('href')).group()
+        gs_dict['id'] = int(idx)
+
+        gs_dict.update(clean_ratings(num_blocks[i].text.split()))
+
+        gs_dict['year_pub'] = site[-5:-1]
 
         list_of_book_dicts.append(gs_dict)
         
