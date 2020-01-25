@@ -131,7 +131,7 @@ def get_description(driver):
         # handling errors to do with an extended description
         more[0].click()
         try:
-            describe = driver.find_element_by_id('description').text[:-7].strip()
+            describe = driver.find_element_by_id('description').text.strip()
             descrip = ' '.join(describe.split('\n'))
         except:
             descrip = np.nan
@@ -139,7 +139,7 @@ def get_description(driver):
     except:
         # if there is no "more" button
         try:
-            describe = driver.find_element_by_id('description').text[:-7].strip()
+            describe = driver.find_element_by_id('description').text.strip()
             descrip = ' '.join(describe.split('\n'))
         except:
             descrip = np.nan
@@ -216,7 +216,7 @@ def save_those_50(latest, last_50):
 def add_to_saved_df(latest, saved_filename): 
     ''' returns a concatenated dataframe with the last 50 appended onto it, to be used before saving'''
     old = pd.read_csv(saved_filename, index_col=[0])
-    return old.append(latest, sort=True)
+    return old.append(latest, ignore_index=True)
 
 
 def update_saved(updated_df, saved_filename): 
