@@ -8,7 +8,7 @@ The present recommendation system implements a content-based model to suggest bo
 
 
 
-The resulting recommendation system is currently implemented and running through a Flask/Yarn enabled frontend, as a collaboration with software engineer, James Sharpe. This can be found at http://jameswrightsharpe.me/your-next-page-turner/.
+The resulting recommendation system is currently implemented and running through a Flask/Yarn enabled frontend, as a collaboration with software engineer, James Sharpe. This can be found at [his website](<https://your-next-page-turner.firebaseapp.com/>).
 
 
  
