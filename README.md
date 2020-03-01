@@ -1,4 +1,4 @@
-# Your Next Page Turner (backend)
+# Your Next Page Turner (Backend)
 
 Your Next Page Turner is a book recommendation system that sources from the top 200 books of the last 200 years, as determined by Goodreads users and data. 
 
