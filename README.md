@@ -1,8 +1,8 @@
-# your_next_page_turner_backend
+# Your Next Page Turner (backend)
 
 Your Next Page Turner is a book recommendation system that sources from the top 200 books of the last 200 years, as determined by Goodreads users and data. 
 
-Information on nearly 40,000 books - including title, author, description and cover image -  was scraped from Goodreads in January 2020 using Selenium. Details on the scraping process can be found in the file entitled "clean_scrape.ipynb".
+Information on nearly 20,000 books - including title, author, description and cover image -  was scraped from Goodreads in January 2020 using Selenium. Details on the scraping process can be found in the file entitled "clean_scrape.ipynb".
 
 The present recommendation system implements a content-based model to suggest books based on the similarity scores of their associated "bag of words". Details on this process can be found throughout the "cleaning_and_eda.ipynb" file, as well as in the "book_functions.py" file.
 
