@@ -17,7 +17,7 @@ The resulting recommendation system is currently implemented and running through
 !['view description'](https://github.com/rebecca-hh-rosen/your_next_pageturner_backend/blob/master/book_images/book_info.png)
 
 
-## 3. Gettin a recommendation:
+## 3. Getting a recommendation:
 !['seek recommendation'](https://github.com/rebecca-hh-rosen/your_next_pageturner_backend/blob/master/book_images/book_rec.png)
 
 
