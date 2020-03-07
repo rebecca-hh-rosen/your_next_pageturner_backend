@@ -8,10 +8,19 @@ The present recommendation system implements a content-based model to suggest bo
 
 
 
-The resulting recommendation system is currently implemented and running through a Flask/Yarn enabled frontend, as a collaboration with software engineer, James Sharpe. This can be found at [his website](<https://your-next-page-turner.firebaseapp.com/>).
+The resulting recommendation system is currently implemented and running through a Flask/Yarn enabled frontend, as a collaboration with software engineer, James Sharpe. This full site can be found at [his website](<https://your-next-page-turner.firebaseapp.com/>). Below are a few images highlighting the process of the site:
+
+1. Browsing the collection:
+!['select a book'](https://github.com/rebecca-hh-rosen/your_next_pageturner_backend/blob/master/book_images/book_select.png)
+
+2. Choosing a novel:
+!['view description'](https://github.com/rebecca-hh-rosen/your_next_pageturner_backend/blob/master/book_images/book_info.png)
 
 
- 
+3. Gettin a recommendation:
+!['seek recommendation'](https://github.com/rebecca-hh-rosen/your_next_pageturner_backend/blob/master/book_images/book_rec.png)
+
+
 
 Enjoy, and read on!
 
