@@ -1,6 +1,6 @@
 # Your Next Page Turner (Backend)
 
-Your Next Page Turner is a book recommendation system that sources from the top 200 books of the last 200 years, as determined by Goodreads users and data. 
+Your Next Page Turner is a book recommendation system that sources from the top 200 books of the last 200 years, as determined by Goodreads users and data on the website. 
 
 Information on nearly 20,000 books - including title, author, description and cover image -  was scraped from Goodreads in January 2020 using Selenium. Details on the scraping process can be found in the file entitled "clean_scrape.ipynb".
 
